@@ -21,6 +21,25 @@ AWAITING_INTERESTS, AWAITING_ATTEND_REASON, AWAITING_EXPECTATIONS, \
 AWAITING_PHYSICAL_STATE, AWAITING_EMOTIONAL_STATE, \
 DUMMY, DAILY_RESULTS = range(10)
 
+INTERESTS = database.get_interests_list()
+
+
+def get_interests_keyboard():
+    keyboard = []
+    interests_row = []
+    for interest in INTERESTS:
+        interests_row.append(interest)
+        if len(interests_row) == 3:
+            keyboard.append(interests_row)
+            interests_row = []
+    if interests_row:
+        keyboard.append(interests_row)
+
+    return keyboard
+
+
+INTERESTS_KEYBOARD = get_interests_keyboard()
+
 
 def start(update: Update, context: CallbackContext):
     update.message.reply_text('Напиши свои Фамилию и Имя.\n\nФормат ввода:\nИванов Иван')
@@ -51,13 +70,27 @@ def handle_email(update: Update, context: CallbackContext):
         return AWAITING_EMAIL
 
     context.user_data['email'] = update.message.text
-    update.message.reply_text('Какие у тебя интересы (3-5 штук)')
+    update.message.reply_text('Давай выберем твои интересы! Выбери любую область из списка',
+                              reply_markup=ReplyKeyboardMarkup(INTERESTS_KEYBOARD))
     return AWAITING_INTERESTS
 
 
 def handle_interests(update: Update, context: CallbackContext):
-    context.user_data['interests'] = update.message.text
-    update.message.reply_text('Почему ты захотел пойти на марафон?')
+    user_interests = context.user_data.setdefault('interests', [])
+    if update.message.text not in INTERESTS:
+        update.message.reply_text('Давай выбирать интересы только из списка',
+                                  reply_markup=ReplyKeyboardMarkup(INTERESTS_KEYBOARD, one_time_keyboard=True))
+        return AWAITING_INTERESTS
+    user_interests.append(update.message.text)
+    if len(user_interests) == 1:
+        update.message.reply_text('Что еще тебя интересует?', reply_markup=ReplyKeyboardMarkup(INTERESTS_KEYBOARD))
+        return AWAITING_INTERESTS
+    elif len(user_interests) == 2:
+        update.message.reply_text('Давай выберем последний интерес',
+                                  reply_markup=ReplyKeyboardMarkup(INTERESTS_KEYBOARD, one_time_keyboard=True))
+        return AWAITING_INTERESTS
+
+    update.message.reply_text('Отлично! Почему ты захотел пойти на марафон?')
     return AWAITING_ATTEND_REASON
 
 
