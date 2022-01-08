@@ -1,8 +1,9 @@
 import datetime
 
 import pytz
-from telegram.ext import Updater, CallbackContext, MessageHandler, CommandHandler, Filters, ConversationHandler
-from telegram import ReplyKeyboardMarkup, ChatAction, Update
+from telegram.ext import Updater, CallbackContext, MessageHandler, CommandHandler, Filters, \
+    ConversationHandler
+from telegram import ReplyKeyboardMarkup, Update, InlineKeyboardMarkup, InlineKeyboardButton
 import logging
 import os
 from dotenv import load_dotenv
@@ -49,7 +50,11 @@ def start(update: Update, context: CallbackContext):
     context.user_data['signed_up'] = False
     context.job_queue.run_daily(morning_reminder, days=(0, 1, 2, 3, 4, 5, 6),
                                 time=datetime.time(hour=11, minute=0, tzinfo=pytz.timezone('Europe/Moscow')),
-                                context=update.message.chat_id, name=str(update.message.chat_id))
+                                context=(update.message.chat_id, context.user_data), name=str(update.message.chat_id))
+    context.job_queue.run_daily(daily_results, days=(0, 1, 2, 3, 4, 5, 6),
+                                time=datetime.time(hour=19, minute=0, tzinfo=pytz.timezone('Europe/Moscow')),
+                                context=(update.message.chat_id, context.user_data), name=str(update.message.chat_id))
+
     update.message.reply_text('Напиши свои Фамилию и Имя.\n\nФормат ввода:\nИванов Иван')
     return AWAITING_NAME_SURNAME
 
@@ -156,9 +161,16 @@ def stop(update):
 
 
 def morning_reminder(context: CallbackContext):
-    if context.user_data.get('signed_up', False):
-        context.bot.send_message(context.job.context, text='Привет, в группе уже выставили задание! '
-                                                           'Напоминаю, что нужно сдать отчет сегодня до 23:40')
+    chat_id, user_data = context.job.context
+    if user_data.get('signed_up', False):
+        context.bot.send_message(chat_id, text='Привет, в группе уже выставили задание! '
+                                               'Напоминаю, что нужно сдать отчет сегодня до 23:40')
+
+
+def daily_results(context: CallbackContext):
+    chat_id, user_data = context.job.context
+    if user_data.get('signed_up', False):
+        context.bot.send_message(chat_id, text='У нас сегодня была <название темы>. Ты сделал задание на сегодня?')
 
 
 def main():
