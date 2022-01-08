@@ -4,15 +4,16 @@ import logging
 import os
 from dotenv import load_dotenv
 from utils.validator import Validator
-from db.db import Database, UserInfo
+from utils.interests import get_interests_list
+from storage.sheets import SheetsManager, UserInfo
 
 load_dotenv()
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-database = Database()
-database.create_users_table()
+sheets = SheetsManager()
+sheets.create_users_table()
 
 TOKEN = os.getenv('TOKEN')
 
@@ -21,7 +22,7 @@ AWAITING_INTERESTS, AWAITING_ATTEND_REASON, AWAITING_EXPECTATIONS, \
 AWAITING_PHYSICAL_STATE, AWAITING_EMOTIONAL_STATE, \
 DUMMY, DAILY_RESULTS = range(10)
 
-INTERESTS = database.get_interests_list()
+INTERESTS = get_interests_list()
 
 
 def get_interests_keyboard():
@@ -122,11 +123,11 @@ def handle_emotional_state(update: Update, context: CallbackContext):
         return AWAITING_EMOTIONAL_STATE
 
     context.user_data['emotional_state'] = update.message.text
-    database.add_user(UserInfo(context.user_data['name'], context.user_data['surname'], context.user_data['phone'],
-                               context.user_data['email'], context.user_data['interests'],
-                               context.user_data['attend_reason'],
-                               context.user_data['expectations'], context.user_data['physical_state'],
-                               context.user_data['emotional_state']))
+    sheets.add_user(UserInfo(context.user_data['name'], context.user_data['surname'], context.user_data['phone'],
+                             context.user_data['email'], context.user_data['interests'],
+                             context.user_data['attend_reason'],
+                             context.user_data['expectations'], context.user_data['physical_state'],
+                             context.user_data['emotional_state']))
     update.message.reply_text('Спасибо! Добро пожаловать на марафон!')
     return DUMMY
 
