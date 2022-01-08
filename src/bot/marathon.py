@@ -1,3 +1,6 @@
+import datetime
+
+import pytz
 from telegram.ext import Updater, CallbackContext, MessageHandler, CommandHandler, Filters, ConversationHandler
 from telegram import ReplyKeyboardMarkup, ChatAction, Update
 import logging
@@ -43,6 +46,10 @@ INTERESTS_KEYBOARD = get_interests_keyboard()
 
 
 def start(update: Update, context: CallbackContext):
+    context.user_data['signed_up'] = False
+    context.job_queue.run_daily(morning_reminder, days=(0, 1, 2, 3, 4, 5, 6),
+                                time=datetime.time(hour=11, minute=0, tzinfo=pytz.timezone('Europe/Moscow')),
+                                context=update.message.chat_id, name=str(update.message.chat_id))
     update.message.reply_text('Напиши свои Фамилию и Имя.\n\nФормат ввода:\nИванов Иван')
     return AWAITING_NAME_SURNAME
 
@@ -72,7 +79,7 @@ def handle_email(update: Update, context: CallbackContext):
 
     context.user_data['email'] = update.message.text
     update.message.reply_text('Давай выберем твои интересы! Выбери любую область из списка',
-                              reply_markup=ReplyKeyboardMarkup(INTERESTS_KEYBOARD))
+                              reply_markup=ReplyKeyboardMarkup(INTERESTS_KEYBOARD, one_time_keyboard=True))
     return AWAITING_INTERESTS
 
 
@@ -84,7 +91,8 @@ def handle_interests(update: Update, context: CallbackContext):
         return AWAITING_INTERESTS
     user_interests.append(update.message.text)
     if len(user_interests) == 1:
-        update.message.reply_text('Что еще тебя интересует?', reply_markup=ReplyKeyboardMarkup(INTERESTS_KEYBOARD))
+        update.message.reply_text('Что еще тебя интересует?',
+                                  reply_markup=ReplyKeyboardMarkup(INTERESTS_KEYBOARD, one_time_keyboard=True))
         return AWAITING_INTERESTS
     elif len(user_interests) == 2:
         update.message.reply_text('Давай выберем последний интерес',
@@ -128,6 +136,7 @@ def handle_emotional_state(update: Update, context: CallbackContext):
                              context.user_data['attend_reason'],
                              context.user_data['expectations'], context.user_data['physical_state'],
                              context.user_data['emotional_state']))
+    context.user_data['signed_up'] = True
     update.message.reply_text('Спасибо! Добро пожаловать на марафон!')
     return DUMMY
 
@@ -144,6 +153,12 @@ def error(update, error):
 def stop(update):
     update.message.reply_text('До свидания!')
     return ConversationHandler.END
+
+
+def morning_reminder(context: CallbackContext):
+    if context.user_data.get('signed_up', False):
+        context.bot.send_message(context.job.context, text='Привет, в группе уже выставили задание! '
+                                                           'Напоминаю, что нужно сдать отчет сегодня до 23:40')
 
 
 def main():
