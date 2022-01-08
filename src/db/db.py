@@ -11,6 +11,7 @@ class Database:
 
     def add_user(self, user_info: UserInfo):
         # add new user
+        print(user_info)
         pass
 
     def close(self):
