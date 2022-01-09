@@ -1,4 +1,5 @@
 from utils.user_info import UserInfo
+from typing import List
 
 
 class SheetsManager:
@@ -12,6 +13,12 @@ class SheetsManager:
         # add new user
         print(user_info)
         pass
+
+    def add_daily_results(self) -> None:
+        pass
+
+    def get_today_tasks(self) -> List[str]:
+        return ['Task 1', 'Task 2', 'Task 3', 'Task 4']
 
     def check_billing(self, user_id: int) -> bool:
         pass
