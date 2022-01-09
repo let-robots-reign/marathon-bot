@@ -16,8 +16,7 @@ load_dotenv()
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-sheets = SheetsManager()
-sheets.create_users_table()
+sheets = SheetsManager("../../tirey-group-bot.json")
 
 TOKEN = os.getenv('TOKEN')
 
@@ -150,9 +149,9 @@ def handle_emotional_state(update: Update, context: CallbackContext):
         return AWAITING_TASK_FEAR
 
     context.user_data['emotional_state'] = update.message.text
-    sheets.add_user(UserInfo(context.user_data['name'], context.user_data['surname'], context.user_data['phone'],
-                             context.user_data['email'], context.user_data['interests'],
-                             context.user_data['attend_reason'],
+    sheets.add_user(UserInfo(update.message.chat_id, context.user_data['name'], context.user_data['surname'],
+                             context.user_data['phone'], context.user_data['email'],
+                             context.user_data['interests'], context.user_data['attend_reason'],
                              context.user_data['expectations'], context.user_data['physical_state'],
                              context.user_data['emotional_state']))
     context.user_data['signed_up'] = True

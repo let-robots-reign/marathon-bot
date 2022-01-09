@@ -4,6 +4,7 @@ from typing import List
 
 @dataclass
 class UserInfo:
+    id: int
     name: str
     surname: str
     phone: str
