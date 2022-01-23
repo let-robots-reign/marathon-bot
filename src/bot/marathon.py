@@ -49,8 +49,8 @@ def get_interests_keyboard():
 
 
 def get_tasks_keyboard():
-    return ReplyKeyboardMarkup([[task] for task in sheets.get_today_tasks()], resize_keyboard=True,
-                               one_time_keyboard=True)
+    return ReplyKeyboardMarkup([[task] for task in sheets.get_tasks_for_date(get_current_date())],
+                               resize_keyboard=True, one_time_keyboard=True)
 
 
 INTERESTS_KEYBOARD = get_interests_keyboard()
@@ -58,10 +58,10 @@ INTERESTS_KEYBOARD = get_interests_keyboard()
 
 def create_jobs(chat_id, context: CallbackContext):
     context.job_queue.run_daily(morning_reminder, days=(0, 1, 2, 3, 4, 5, 6),
-                                time=datetime.time(hour=12, minute=42, tzinfo=pytz.timezone('Europe/Moscow')),
+                                time=datetime.time(hour=11, minute=00, tzinfo=pytz.timezone('Europe/Moscow')),
                                 context=(chat_id, context.user_data), name=f'{str(chat_id)}-morning')
     context.job_queue.run_daily(daily_results, days=(0, 1, 2, 3, 4, 5, 6),
-                                time=datetime.time(hour=19, minute=0, tzinfo=pytz.timezone('Europe/Moscow')),
+                                time=datetime.time(hour=14, minute=14, tzinfo=pytz.timezone('Europe/Moscow')),
                                 context=(chat_id, context.user_data),  name=f'{str(chat_id)}-evening')
 
 
@@ -188,7 +188,7 @@ def handle_dummy(update: Update, context: CallbackContext):
 
 
 def handle_task_done(update: Update, context: CallbackContext):
-    if update.message.text not in sheets.get_today_tasks():
+    if update.message.text not in sheets.get_tasks_for_date(get_current_date()):
         update.message.reply_text('Такой темы нет у нас в списке, повтори выбор')
         return AWAITING_TASK_DONE
 
@@ -241,8 +241,9 @@ def daily_results(context: CallbackContext):
     chat_id, user_data = context.job.context
     if user_data.get('signed_up', False):
         user_data['awaiting_daily_results'] = True
+        topic = sheets.get_topic_for_date(get_current_date())
         context.bot.send_message(chat_id,
-                                 text='У нас сегодня была <название темы>. Ты сделал задание на сегодня?',
+                                 text=f'У нас сегодня была тема\n{topic}\nТы сделал задание на сегодня?',
                                  reply_markup=YES_NO_KEYBOARD)
 
 
@@ -268,7 +269,7 @@ def main():
             DUMMY: [MessageHandler(Filters.text, handle_dummy)]
         },
         fallbacks=[CommandHandler('stop', stop)],
-        persistent=True,
+        # persistent=True,
         name="conversation"
     )
 

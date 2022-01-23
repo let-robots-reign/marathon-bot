@@ -41,10 +41,13 @@ class SheetsManager:
         col = self.wks_info.get_col(col_index + 1, include_tailing_empty=False)
         return col
 
+    def get_topic_for_date(self, date: str) -> str:
+        return self.__get_column_for_date(date)[1]
+
     def get_tasks_for_date(self, date: str) -> List[str]:
         return self.__get_column_for_date(date)[3].split('\n')[1:]
 
-    def get_today_tips(self, date: str) -> List[str]:
+    def get_tips_for_date(self, date: str) -> List[str]:
         return self.__get_column_for_date(date)[2].split('\n')
 
     def check_billing(self, user_id: int) -> bool:
