@@ -30,6 +30,10 @@ YES_NO_KEYBOARD = ReplyKeyboardMarkup([['Да', 'Нет']], resize_keyboard=True
                                       one_time_keyboard=True)
 
 
+def get_current_date():
+    return datetime.datetime.today().strftime("%d.%m")
+
+
 def get_interests_keyboard():
     keyboard = []
     interests_row = []
@@ -52,17 +56,18 @@ def get_tasks_keyboard():
 INTERESTS_KEYBOARD = get_interests_keyboard()
 
 
-def start(update: Update, context: CallbackContext):
-    context.user_data['signed_up'] = False
+def create_jobs(chat_id, context: CallbackContext):
     context.job_queue.run_daily(morning_reminder, days=(0, 1, 2, 3, 4, 5, 6),
-                                time=datetime.time(hour=11, minute=0, tzinfo=pytz.timezone('Europe/Moscow')),
-                                context=(update.message.chat_id, context.user_data),
-                                name=f'{str(update.message.chat_id)}-morning')
+                                time=datetime.time(hour=12, minute=42, tzinfo=pytz.timezone('Europe/Moscow')),
+                                context=(chat_id, context.user_data), name=f'{str(chat_id)}-morning')
     context.job_queue.run_daily(daily_results, days=(0, 1, 2, 3, 4, 5, 6),
                                 time=datetime.time(hour=19, minute=0, tzinfo=pytz.timezone('Europe/Moscow')),
-                                context=(update.message.chat_id, context.user_data),
-                                name=f'{str(update.message.chat_id)}-evening')
+                                context=(chat_id, context.user_data),  name=f'{str(chat_id)}-evening')
 
+
+def start(update: Update, context: CallbackContext):
+    context.user_data['signed_up'] = False
+    create_jobs(update.message.chat_id, context)
     update.message.reply_text('Напиши свои Фамилию и Имя.\n\nФормат ввода:\nИванов Иван')
     return AWAITING_NAME_SURNAME
 
