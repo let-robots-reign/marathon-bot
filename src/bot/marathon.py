@@ -2,7 +2,7 @@ import datetime
 
 import pytz
 from telegram.ext import Updater, CallbackContext, MessageHandler, CommandHandler, Filters, \
-    ConversationHandler, CallbackQueryHandler
+    ConversationHandler, PicklePersistence
 from telegram import ReplyKeyboardMarkup, Update
 import logging
 import os
@@ -242,7 +242,8 @@ def daily_results(context: CallbackContext):
 
 
 def main():
-    updater = Updater(TOKEN, request_kwargs={'read_timeout': 10, 'connect_timeout': 10})
+    bot_persistence = PicklePersistence(filename="persistence")
+    updater = Updater(TOKEN, request_kwargs={'read_timeout': 10, 'connect_timeout': 10}, persistence=bot_persistence)
     dp = updater.dispatcher
 
     conv_handler = ConversationHandler(
@@ -261,7 +262,9 @@ def main():
             AWAITING_LINK: [MessageHandler(Filters.text, handle_link)],
             DUMMY: [MessageHandler(Filters.text, handle_dummy)]
         },
-        fallbacks=[CommandHandler('stop', stop)]
+        fallbacks=[CommandHandler('stop', stop)],
+        persistent=True,
+        name="conversation"
     )
 
     dp.add_handler(conv_handler)
