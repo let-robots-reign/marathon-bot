@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, date, time
 
 import pytz
 from telegram.ext import Updater, CallbackContext, MessageHandler, CommandHandler, Filters, \
@@ -31,7 +31,14 @@ YES_NO_KEYBOARD = ReplyKeyboardMarkup([['Да', 'Нет']], resize_keyboard=True
 
 
 def get_current_date():
-    return datetime.datetime.today().strftime("%d.%m")
+    return datetime.today().strftime("%d.%m")
+
+
+def get_days_left():
+    with open('../../end_date.txt', 'r', encoding='utf8') as infile:
+        end_date = infile.readline().strip()
+        day, month = map(int, end_date.split('.'))
+        return (date(2022, month, day) - date.today()).days
 
 
 def get_interests_keyboard():
@@ -58,10 +65,10 @@ INTERESTS_KEYBOARD = get_interests_keyboard()
 
 def create_jobs(chat_id, context: CallbackContext):
     context.job_queue.run_daily(morning_reminder, days=(0, 1, 2, 3, 4, 5, 6),
-                                time=datetime.time(hour=11, minute=00, tzinfo=pytz.timezone('Europe/Moscow')),
+                                time=time(hour=11, minute=00, tzinfo=pytz.timezone('Europe/Moscow')),
                                 context=(chat_id, context.user_data), name=f'{str(chat_id)}-morning')
     context.job_queue.run_daily(daily_results, days=(0, 1, 2, 3, 4, 5, 6),
-                                time=datetime.time(hour=14, minute=14, tzinfo=pytz.timezone('Europe/Moscow')),
+                                time=time(hour=14, minute=14, tzinfo=pytz.timezone('Europe/Moscow')),
                                 context=(chat_id, context.user_data),  name=f'{str(chat_id)}-evening')
 
 
@@ -216,7 +223,7 @@ def handle_link(update: Update, context: CallbackContext):
                                           context.user_data['task_feelings_physical'],
                                           context.user_data['task_feelings_emotional'],
                                           context.user_data['task_fear'], context.user_data['task_link']))
-    update.message.reply_text('Продолжай в том же духе! Осталось Х дней')
+    update.message.reply_text(f'Продолжай в том же духе! Дней до конца марафона: {get_days_left()}')
     return DUMMY
 
 
