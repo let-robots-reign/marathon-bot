@@ -65,11 +65,19 @@ INTERESTS_KEYBOARD = get_interests_keyboard()
 
 def create_jobs(chat_id, context: CallbackContext):
     context.job_queue.run_daily(morning_reminder, days=(0, 1, 2, 3, 4, 5, 6),
-                                time=time(hour=11, minute=00, tzinfo=pytz.timezone('Europe/Moscow')),
+                                time=time(hour=11, minute=0, tzinfo=pytz.timezone('Europe/Moscow')),
                                 context=(chat_id, context.user_data), name=f'{str(chat_id)}-morning')
     context.job_queue.run_daily(daily_results, days=(0, 1, 2, 3, 4, 5, 6),
-                                time=time(hour=14, minute=14, tzinfo=pytz.timezone('Europe/Moscow')),
-                                context=(chat_id, context.user_data),  name=f'{str(chat_id)}-evening')
+                                time=time(hour=19, minute=0, tzinfo=pytz.timezone('Europe/Moscow')),
+                                context=(chat_id, context.user_data), name=f'{str(chat_id)}-evening')
+    context.job_queue.run_daily(first_tip, days=(0, 1, 2, 3, 4, 5, 6),
+                                time=time(hour=13, minute=0, tzinfo=pytz.timezone('Europe/Moscow')),
+                                context=(chat_id, context.user_data), name=f'{str(chat_id)}-first-tip')
+    context.job_queue.run_daily(second_tip, days=(0, 1, 2, 3, 4, 5, 6),
+                                time=time(hour=15, minute=0, tzinfo=pytz.timezone('Europe/Moscow')),
+                                context=(chat_id, context.user_data), name=f'{str(chat_id)}-second-tip')
+    context.job_queue.run_once(set_check_billing, 7*24*60*60, context=(chat_id, context.user_data),
+                               name=f'{str(chat_id)}-set-check-billing')
 
 
 def start(update: Update, context: CallbackContext):
@@ -239,6 +247,8 @@ def stop(update):
 def morning_reminder(context: CallbackContext):
     chat_id, user_data = context.job.context
     if user_data.get('signed_up', False):
+        if user_data.get('should_check_billing', False) and not sheets.check_billing(chat_id):
+            return
         context.bot.send_message(chat_id, text='Привет, в группе уже выставили задание! '
                                                'Напоминаю, что нужно сдать отчет сегодня до 23:40')
 
@@ -247,16 +257,54 @@ def morning_reminder(context: CallbackContext):
 def daily_results(context: CallbackContext):
     chat_id, user_data = context.job.context
     if user_data.get('signed_up', False):
-        user_data['awaiting_daily_results'] = True
         topic = sheets.get_topic_for_date(get_current_date())
+        if user_data.get('should_check_billing', False) and not sheets.check_billing(chat_id):
+            context.bot.send_message(chat_id,
+                                     text=f"У нас сегодня была тема\n{topic}\n"
+                                          f"Чтобы получить доступ к отправке отчета, необходимо оплатить марафон")
+            return
         context.bot.send_message(chat_id,
                                  text=f'У нас сегодня была тема\n{topic}\nТы сделал задание на сегодня?',
                                  reply_markup=YES_NO_KEYBOARD)
+        user_data['awaiting_daily_results'] = True
+
+
+def first_tip(context: CallbackContext):
+    chat_id, user_data = context.job.context
+    if user_data.get('signed_up', False):
+        if user_data.get('should_check_billing', False) and not sheets.check_billing(chat_id):
+            return
+
+        tips = sheets.get_tips_for_date(get_current_date())
+        if tips:
+            context.bot.send_message(chat_id, text=tips[0])
+
+
+def second_tip(context: CallbackContext):
+    chat_id, user_data = context.job.context
+    if user_data.get('signed_up', False):
+        if user_data.get('should_check_billing', False) and not sheets.check_billing(chat_id):
+            return
+
+        tips = sheets.get_tips_for_date(get_current_date())
+        if len(tips) > 1:
+            context.bot.send_message(chat_id, text=tips[1])
+
+
+def set_check_billing(context: CallbackContext):
+    chat_id, user_data = context.job.context
+    if user_data.get('signed_up', False):
+        user_data['should_check_billing'] = True
+        if not sheets.check_billing(chat_id):
+            context.bot.send_message(chat_id,
+                                     text="Привет! 7 дней бесплатного использования бота подошли к концу, "
+                                          "для дальнейшего использования необходимо оплатить марафон")
 
 
 def main():
     bot_persistence = PicklePersistence(filename="persistence")
     updater = Updater(TOKEN, request_kwargs={'read_timeout': 10, 'connect_timeout': 10}, persistence=bot_persistence)
+    # updater = Updater(TOKEN, request_kwargs={'read_timeout': 10, 'connect_timeout': 10})
     dp = updater.dispatcher
 
     conv_handler = ConversationHandler(
@@ -276,7 +324,7 @@ def main():
             DUMMY: [MessageHandler(Filters.text, handle_dummy)]
         },
         fallbacks=[CommandHandler('stop', stop)],
-        # persistent=True,
+        persistent=True,
         name="conversation"
     )
 

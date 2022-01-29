@@ -11,10 +11,10 @@ class SheetsManager:
     def __init__(self, path):
         gc = pygsheets.authorize(service_file=path)
         sheet = gc.open('bot')
-        self.wks_users = sheet.worksheet('index', 0)
-        self.wks_results = sheet.worksheet('index', 1)
-        self.wks_billing = sheet.worksheet('index', 2)
-        self.wks_info = sheet.worksheet('index', 3)
+        self.wks_info = sheet.worksheet('index', 0)
+        self.wks_users = sheet.worksheet('index', 1)
+        self.wks_results = sheet.worksheet('index', 2)
+        self.wks_billing = sheet.worksheet('index', 3)
         self.users_count = self.get_count(self.wks_users)
         self.daily_results_count = self.get_count(self.wks_results)
 
@@ -38,8 +38,7 @@ class SheetsManager:
     def __get_column_for_date(self, date: str) -> List[str]:
         dates = self.wks_info.get_row(1, include_tailing_empty=False)
         col_index = dates.index(date)
-        col = self.wks_info.get_col(col_index + 1, include_tailing_empty=False)
-        return col
+        return self.wks_info.get_col(col_index + 1, include_tailing_empty=False)
 
     def get_topic_for_date(self, date: str) -> str:
         return self.__get_column_for_date(date)[1]
@@ -48,7 +47,13 @@ class SheetsManager:
         return self.__get_column_for_date(date)[3].split('\n')[1:]
 
     def get_tips_for_date(self, date: str) -> List[str]:
-        return self.__get_column_for_date(date)[2].split('\n')
+        return self.__get_column_for_date(date)[2].split('\n\n')
 
     def check_billing(self, user_id: int) -> bool:
-        pass
+        user_ids = self.wks_billing.get_col(1, include_tailing_empty=False)
+        try:
+            index = user_ids.index(user_id)
+        except ValueError:
+            return False
+
+        return self.wks_billing.get_row(index + 1, include_tailing_empty=False)[1] == "+"
