@@ -16,7 +16,7 @@ load_dotenv()
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-sheets = SheetsManager("../../tirey-group-bot.json")
+sheets = SheetsManager("../tirey-group-bot.json")
 
 TOKEN = os.getenv('TOKEN')
 
@@ -35,7 +35,7 @@ def get_current_date():
 
 
 def get_days_left():
-    with open('../../end_date.txt', 'r', encoding='utf8') as infile:
+    with open('../end_date.txt', 'r', encoding='utf8') as infile:
         end_date = infile.readline().strip()
         day, month = map(int, end_date.split('.'))
         return (date(2022, month, day) - date.today()).days
@@ -301,7 +301,7 @@ def set_check_billing(context: CallbackContext):
                                           "для дальнейшего использования необходимо оплатить марафон")
 
 
-def main():
+def run():
     bot_persistence = PicklePersistence(filename="persistence")
     updater = Updater(TOKEN, request_kwargs={'read_timeout': 10, 'connect_timeout': 10}, persistence=bot_persistence)
     # updater = Updater(TOKEN, request_kwargs={'read_timeout': 10, 'connect_timeout': 10})
@@ -333,7 +333,3 @@ def main():
 
     updater.start_polling()
     updater.idle()
-
-
-if __name__ == '__main__':
-    main()
