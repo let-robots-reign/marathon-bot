@@ -35,7 +35,7 @@ def get_current_date():
 
 
 def get_days_left():
-    with open('../end_date.txt', 'r', encoding='utf8') as infile:
+    with open('end_date.txt', 'r', encoding='utf8') as infile:
         end_date = infile.readline().strip()
         day, month = map(int, end_date.split('.'))
         return (date(2022, month, day) - date.today()).days
